@@ -13,10 +13,11 @@ try:
 except Exception:
     raise IOError('Error reading config file')
 
-bot = commands.Bot(command_prefix='>')
+if __name__ == '__main__':
+    bot = commands.Bot(command_prefix='>')
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send('pong')
+    @bot.command()
+    async def ping(ctx):
+        await ctx.send('pong')
 
-bot.run(API_KEY)
+    bot.run(API_KEY)
