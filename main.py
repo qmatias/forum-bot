@@ -1,12 +1,13 @@
-import discord
+from discord import Message
 from discord.ext import commands
 from configparser import ConfigParser
 from os import path
+# TODO: at some point, move to peewee-async for theoretical, probably completely insignificant performance gains
+#  https://peewee-async.readthedocs.io/en/latest/
 from peewee import *
 from datetime import date
 
-
-# Root project directory
+# root project directory
 ROOT_DIR = path.dirname(path.abspath(__file__))
 
 CONFIG = ConfigParser()
@@ -18,39 +19,32 @@ except Exception:
     raise IOError('Error reading config file')
 db = SqliteDatabase(DATABASE_FILE)
 
+
 class Thread(Model):
-    author = CharField() # TODO: add actual author model
+    author = CharField()  # TODO: add actual author model and link to it here
     created = DateField()
 
     class Meta:
         database = db
 
+
 db.connect()
 db.create_tables([Thread])
-uncle_bob = Thread.create(author='hi', created=date(1960, 1, 15))
+Thread.create(author='Joe', created=date(1960, 1, 15))
 
-for person in Thread.select():
-    print(person.author)
+# print out all the threads we have in the database
+for thread in Thread.select():
+    print(f'{thread.created} {thread.author}')
 
-
+CHANNEL = "support-channel"
 if __name__ == '__main__':
     bot = commands.Bot(command_prefix='>')
 
-    @bot.command()
-    async def ping(ctx):
-        await ctx.send('weewee')
 
     @bot.event
-    async def on_ready():
-        print("hello")
-        for guild in bot.guilds:
-            print(guild.name)
+    async def on_message(message: Message):
+        if message.channel.name == CHANNEL:
+            print(f'Message sent in support channel: {message.content} from {message.author.name}')
 
-    @bot.event
-    async def on_message(message):
-        if message.channel.name == "support-channel":
-            print(message.channel)
-        else:
-            return
 
     bot.run(API_KEY)
