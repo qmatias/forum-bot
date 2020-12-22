@@ -79,5 +79,8 @@ if __name__ == '__main__':
             msg += f'{thread.created} {thread.author.discord_id} {thread.content} {thread.subject}\n'
         await ctx.send(msg)
 
+    @bot.event
+    async def on_command_error(ctx: Context, error: commands.CommandError):
+        print(error)
 
     bot.run(API_KEY)
