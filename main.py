@@ -66,24 +66,17 @@ CHANNEL = "support-channel"
 if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
 
+    def is_support_channel():
+        def _is_support_channel(ctx):
+            return ctx.channel.name == CHANNEL
+        return commands.check(_is_support_channel)
 
-    def channel_command(*args, **kwargs):
-        def _channel_command(func):
-            @bot.command(*args, **kwargs)
-            async def __channel_command(ctx: Context):
-                if ctx.channel.name == CHANNEL:
-                    return await func()
-
-            return __channel_command
-
-        return _channel_command
-
-
-    @channel_command()
+    @bot.command()
+    @is_support_channel()
     async def ping(ctx: Context):
         msg = ""
         for thread in Thread.select():
-            msg += (f'{thread.created} {thread.author.discord_id} {thread.content} {thread.subject}\n')
+            msg += f'{thread.created} {thread.author.discord_id} {thread.content} {thread.subject}\n'
         await ctx.send(msg)
 
 
