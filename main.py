@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from discord import Colour, Embed, CategoryChannel, Reaction, User
 from discord.ext import commands
+from database import Message
 import sys
 import config
 import database
@@ -33,7 +34,9 @@ async def new(ctx: commands.Context, *args):
 
     thread_channel = await category.create_text_channel(thread_title)
 
-    embed = Embed(title=f"Thread: {thread_title}", description=f"Created by: {ctx.author.mention}",
+    embed = Embed(title=f"Thread: {thread_title}", description=f"Created by: {ctx.author.mention}\n"
+                                                               f"React with ✅ to open.\n"
+                                                               f"React with ❌ to close.\n",
                   color=Colour.gold(),
                   timestamp=datetime.now(timezone.utc))
     embed.set_thumbnail(url=ctx.author.avatar_url_as(size=32))
@@ -41,12 +44,17 @@ async def new(ctx: commands.Context, *args):
     for channel in (thread_channel, ctx.channel):
         message = await channel.send(embed=embed)
         await message.add_reaction('✅')
-        database.Message.create(message_id=message.id, channel_id=channel.id)
+        await message.add_reaction('❌')
+        Message.create(message_id=message.id, channel_id=thread_channel.id)
 
 
 @bot.event
 async def on_reaction_add(reaction: Reaction, user: User):
-    print(reaction.emoji)
+    if reaction.me:
+        return
+    channel_id = Message.get(Message.message_id == reaction.message.id).channel_id
+    channel = reaction.message.guild.get_channel(channel_id)
+    
 
 
 @bot.event

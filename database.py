@@ -8,12 +8,14 @@ import config
 
 db = SqliteDatabase(config.DATABASE_URL, pragmas={'foreign_keys': 1})
 
+
 class Message(Model):
     message_id = BigIntegerField(primary_key=True)
     channel_id = BigIntegerField()
 
     class Meta:
         database = db
+
 
 def initialize():
     """
