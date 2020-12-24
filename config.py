@@ -14,9 +14,9 @@ except Exception:
     raise IOError('Error while reading config file')
 
 # discord channel for threads to go into
-THREAD_CHANNEL = "support-channel"
-THREAD_CATEGORY = "threads"
+THREAD_CHANNEL = 'support-channel'
+THREAD_CATEGORY = 'threads'
 
 # reactions
 REACTION_YES = '✅'
-REACTION_NO = '✅'
+REACTION_NO = '❌'
