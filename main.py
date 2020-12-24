@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+from typing import Union
 
 import discord
-from discord import Colour, Embed, CategoryChannel, Reaction, User, TextChannel
+from discord import Colour, Embed, CategoryChannel, Reaction, User, TextChannel, Member
 from discord.ext import commands
 from database import Message
 import sys
@@ -57,25 +58,32 @@ async def new(ctx: commands.Context, *args):
 
 
 @bot.event
-async def on_reaction_add(reaction: Reaction, user: User):
+async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
     # make sure we don't act own our own reactions
-    if reaction.me:
+    if event.user_id == bot.user.id:
         return
 
     # get either YES reaction (check mark) or NO reaction (X)
-    if reaction == config.REACTION_YES:
-        toggle = True
-    elif reaction == config.REACTION_NO:
-        toggle = False
+    if event.emoji.name == config.REACTION_YES:
+        permissions = discord.PermissionOverwrite(read_messages=True) # give full reading permissions on "yes" reaction
+    elif event.emoji.name == config.REACTION_NO:
+        permissions = None # reset permissions on "no" reaction
     else:
         return
 
-    # get the channel from the database which corresponds to the reacted message
-    channel_id = Message.get(Message.message_id == reaction.message.id).channel_id
-    channel: TextChannel = reaction.message.guild.get_channel(channel_id)
+    # look up the corresponding thread in the database
+    thread_channel_id = Message.get(Message.message_id == event.message_id).channel_id
+    thread_channel = bot.get_channel(thread_channel_id)
+
+    # remove the yes/no reaction
+    menu_channel: TextChannel = bot.get_channel(event.channel_id)
+    message = await menu_channel.fetch_message(event.message_id)
+    user = bot.get_user(event.user_id)
+    await message.remove_reaction(event.emoji, user)
 
     # toggle read permissions for the user who reacted
-    await channel.set_permissions(user, read_messages=toggle)
+    await thread_channel.set_permissions(user, overwrite=permissions)
+
 
 
 @bot.event
