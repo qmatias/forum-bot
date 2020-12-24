@@ -65,9 +65,9 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
 
     # get either YES reaction (check mark) or NO reaction (X)
     if event.emoji.name == config.REACTION_YES:
-        permissions = discord.PermissionOverwrite(read_messages=True) # give full reading permissions on "yes" reaction
+        permissions = discord.PermissionOverwrite(read_messages=True)  # give full reading permissions on "yes" reaction
     elif event.emoji.name == config.REACTION_NO:
-        permissions = None # reset permissions on "no" reaction
+        permissions = None  # reset permissions on "no" reaction
     else:
         return
 
@@ -76,14 +76,13 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
     thread_channel = bot.get_channel(thread_channel_id)
 
     # remove the yes/no reaction
-    menu_channel: TextChannel = bot.get_channel(event.channel_id)
-    message = await menu_channel.fetch_message(event.message_id)
+    react_channel: TextChannel = bot.get_channel(event.channel_id)
+    message = await react_channel.fetch_message(event.message_id)
     user = bot.get_user(event.user_id)
     await message.remove_reaction(event.emoji, user)
 
     # toggle read permissions for the user who reacted
     await thread_channel.set_permissions(user, overwrite=permissions)
-
 
 
 @bot.event
