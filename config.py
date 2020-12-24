@@ -16,3 +16,7 @@ except Exception:
 # discord channel for threads to go into
 THREAD_CHANNEL = "support-channel"
 THREAD_CATEGORY = "threads"
+
+# reactions
+REACTION_YES = '✅'
+REACTION_NO = '✅'
