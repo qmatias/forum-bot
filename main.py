@@ -16,7 +16,6 @@ def menu_channel():
     """
     A decorator to check if the command is being run from within :const:`config.CHANNEL`
     """
-
     def predicate(ctx):
         return ctx.channel.name == config.THREAD_CHANNEL
 
@@ -26,10 +25,14 @@ def menu_channel():
 @bot.command()
 @menu_channel()
 async def new(ctx: commands.Context, *args):
+    # delete the message
     await ctx.message.delete()
-    thread_title = ' '.join(args)  # gives you a string of all the arguments, joined by spaces
+
+    # gives you a string of all the arguments, joined by spaces
+    thread_title = ' '.join(args)
     for channel in ctx.guild.channels:
-        if isinstance(channel, CategoryChannel) and channel.name == config.THREAD_CATEGORY:
+        if isinstance(channel, CategoryChannel) \
+                and channel.name == config.THREAD_CATEGORY:
             category = channel
             break
     else:
@@ -38,18 +41,24 @@ async def new(ctx: commands.Context, *args):
     # permissions for the new channel
     # no one can see the channel except whoever created the thread
     permissions = {
-        ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        ctx.guild.default_role:
+        discord.PermissionOverwrite(read_messages=False),
         ctx.author: discord.PermissionOverwrite(read_messages=True)
     }
-    thread_channel = await category.create_text_channel(thread_title, overwrites=permissions)
+    thread_channel = await category.create_text_channel(thread_title,
+                                                        overwrites=permissions)
 
-    embed = Embed(title=f'Thread: {thread_title}', description=f'Created by: {ctx.author.mention}\n'
-                                                               f'React with ✅ to open.\n'
-                                                               f'React with ❌ to close.\n',
-                  color=Colour.gold(),
-                  timestamp=datetime.now(timezone.utc))
+    # create the embed message for the thread
+    embed = Embed(
+        title=config.EMBED_TITLE.format(title=thread_title),
+        description=config.EMBED_DESCRIPTION.format(author=ctx.author.mention),
+        color=config.EMBED_COLOR,
+        timestamp=datetime.now(timezone.utc))
     embed.set_thumbnail(url=ctx.author.avatar_url_as(size=32))
 
+    # send the embed in both the main listing channel `ctx.channel` and the new
+    # channel we created for the thread `thread_channel`
+    # then add the sent message to our database
     for channel in (thread_channel, ctx.channel):
         message = await channel.send(embed=embed)
         await message.add_reaction(config.REACTION_YES)
@@ -65,14 +74,17 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
 
     # get either YES reaction (check mark) or NO reaction (X)
     if event.emoji.name == config.REACTION_YES:
-        permissions = discord.PermissionOverwrite(read_messages=True)  # give full reading permissions on "yes" reaction
+        permissions = discord.PermissionOverwrite(
+            read_messages=True
+        )  # give full reading permissions on "yes" reaction
     elif event.emoji.name == config.REACTION_NO:
         permissions = None  # reset permissions on "no" reaction
     else:
         return
 
     # look up the corresponding thread in the database
-    thread_channel_id = Message.get(Message.message_id == event.message_id).channel_id
+    thread_channel_id = Message.get(
+        Message.message_id == event.message_id).channel_id
     thread_channel = bot.get_channel(thread_channel_id)
 
     # remove the yes/no reaction
@@ -86,8 +98,11 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
 
 
 @bot.event
-async def on_command_error(ctx: commands.Context, error: commands.CommandError):
-    print(error, file=sys.stderr)  # print out the error message to standard error (make the text red in pycharm)
+async def on_command_error(ctx: commands.Context,
+                           error: commands.CommandError):
+    print(
+        error, file=sys.stderr
+    )  # print out the error message to standard error (make the text red in pycharm)
 
 
 if __name__ == '__main__':

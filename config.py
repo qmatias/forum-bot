@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 from os import path
+from discord import Colour
 
 # root project directory
 ROOT_DIR = path.dirname(path.abspath(__file__))
@@ -18,5 +19,11 @@ THREAD_CHANNEL = 'support-channel'
 THREAD_CATEGORY = 'threads'
 
 # reactions
+EMBED_DESCRIPTION = \
+'''Created by: {author}
+React with ✅ to open.
+React with ❌ to close.'''
+EMBED_COLOR = Colour.gold()
+EMBED_TITLE = 'Thread: {title}'
 REACTION_YES = '✅'
 REACTION_NO = '❌'
