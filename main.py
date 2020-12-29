@@ -1,33 +1,48 @@
 from datetime import datetime, timezone
-from typing import Union
 
 import discord
 from discord import Colour, Embed, CategoryChannel, Reaction, User, TextChannel, Member
 from discord.ext import commands
 from database import Message
 import sys
+import peewee
 import config
 import database
 
-bot = commands.Bot(command_prefix='!')
+from utils import random_color, CustomHelpCommand, menu_channel
+
+bot = commands.Bot(command_prefix=commands.when_mentioned_or(config.PREFIX),
+                   help_command=CustomHelpCommand())
 
 
-def menu_channel():
-    """
-    A decorator to check if the command is being run from within :const:`config.CHANNEL`
-    """
-    def predicate(ctx):
-        return ctx.channel.name == config.THREAD_CHANNEL
-
-    return commands.check(predicate)
+@bot.event
+async def on_ready():
+    # Setting `Listening ` status
+    await bot.change_presence(activity=discord.Streaming(name="My Stream", url='https://m.twitch.tv/rogsterr/clip/ThankfulJollyBottleTheThing'
+))
 
 
-@bot.command()
+
+@bot.event
+@menu_channel()
+async def on_message(message: discord.Message):
+    # make sure we don't delete our own messages
+    if message.author == bot.user:
+        return
+
+    # delete the message
+    await message.delete()
+
+    # process other bot commands
+    await bot.process_commands(message)
+
+
+@bot.command(name='new',
+             help='Create a new thread',
+             usage='<title>',
+             aliases=['create'])
 @menu_channel()
 async def new(ctx: commands.Context, *args):
-    # delete the message
-    await ctx.message.delete()
-
     # gives you a string of all the arguments, joined by spaces
     thread_title = ' '.join(args)
     for channel in ctx.guild.channels:
@@ -45,14 +60,19 @@ async def new(ctx: commands.Context, *args):
         discord.PermissionOverwrite(read_messages=False),
         ctx.author: discord.PermissionOverwrite(read_messages=True)
     }
-    thread_channel = await category.create_text_channel(thread_title,
-                                                        overwrites=permissions)
+    try:
+        thread_channel = await category.create_text_channel(
+            thread_title, overwrites=permissions)
+    except Exception:  # title is too long, invalid character, etc etc
+        # TODO tell the user their title is too long
+        return
 
     # create the embed message for the thread
+    color = random_color()
     embed = Embed(
         title=config.EMBED_TITLE.format(title=thread_title),
         description=config.EMBED_DESCRIPTION.format(author=ctx.author.mention),
-        color=config.EMBED_COLOR,
+        color=color,
         timestamp=datetime.now(timezone.utc))
     embed.set_thumbnail(url=ctx.author.avatar_url_as(size=32))
 
@@ -72,6 +92,12 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
     if event.user_id == bot.user.id:
         return
 
+    # remove the yes/no reaction
+    react_channel: TextChannel = bot.get_channel(event.channel_id)
+    message = await react_channel.fetch_message(event.message_id)
+    user = bot.get_user(event.user_id)
+    await message.remove_reaction(event.emoji, user)
+
     # get either YES reaction (check mark) or NO reaction (X)
     if event.emoji.name == config.REACTION_YES:
         permissions = discord.PermissionOverwrite(
@@ -83,27 +109,31 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
         return
 
     # look up the corresponding thread in the database
-    thread_channel_id = Message.get(
-        Message.message_id == event.message_id).channel_id
-    thread_channel = bot.get_channel(thread_channel_id)
+    # if the message doesn't exist in the database we can just exit
+    try:
+        message_record: Message = Message.get(
+            Message.message_id == event.message_id)
+    except peewee.DoesNotExist:
+        return
 
-    # remove the yes/no reaction
-    react_channel: TextChannel = bot.get_channel(event.channel_id)
-    message = await react_channel.fetch_message(event.message_id)
-    user = bot.get_user(event.user_id)
-    await message.remove_reaction(event.emoji, user)
+    # if channel doesn't exist, remove the record from the database too
+    thread_channel = bot.get_channel(message_record.channel_id)
+    if not thread_channel:
+        # this is not strictly nessecary (invalid records in the database don't really do any harm)
+        # but what's the point in keeping them?
+        message_record.delete_instance()
+        return
 
     # toggle read permissions for the user who reacted
     await thread_channel.set_permissions(user, overwrite=permissions)
 
 
-@bot.event
-async def on_command_error(ctx: commands.Context,
-                           error: commands.CommandError):
-    print(
-        error, file=sys.stderr
-    )  # print out the error message to standard error (make the text red in pycharm)
-
+# @bot.event
+# async def on_command_error(ctx: commands.Context,
+#                            error: commands.CommandError):
+#     print(
+#         error, file=sys.stderr
+#     )  # print out the error message to standard error (make the text red in pycharm)
 
 if __name__ == '__main__':
     database.initialize()

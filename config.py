@@ -14,8 +14,12 @@ try:
 except Exception:
     raise IOError('Error while reading config file')
 
+# discord command prefix
+PREFIX = '!'
+
 # discord channel for threads to go into
 THREAD_CHANNEL = 'support-channel'
+THREAD_CHANNEL_DESCRIPTION = f'Type {PREFIX}help for help with using the bot'
 THREAD_CATEGORY = 'threads'
 
 # reactions
@@ -23,7 +27,6 @@ EMBED_DESCRIPTION = \
 '''Created by: {author}
 React with ✅ to open.
 React with ❌ to close.'''
-EMBED_COLOR = Colour.gold()
 EMBED_TITLE = 'Thread: {title}'
 REACTION_YES = '✅'
 REACTION_NO = '❌'
