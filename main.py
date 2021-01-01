@@ -9,18 +9,27 @@ import peewee
 import config
 import database
 
-from utils import random_color, CustomHelpCommand, menu_channel
+from utils import random_color, menu_channel
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or(config.PREFIX),
-                   help_command=CustomHelpCommand())
+                   help_command=None)
 
 
 @bot.event
 async def on_ready():
     # Setting `Listening ` status
-    await bot.change_presence(activity=discord.Streaming(name="My Stream", url='https://m.twitch.tv/rogsterr/clip/ThankfulJollyBottleTheThing'
-))
+    await bot.change_presence(activity=discord.Streaming(
+        name="My Stream",
+        url='https://m.twitch.tv/rogsterr/clip/ThankfulJollyBottleTheThing'))
 
+
+@bot.command()
+async def rickroll(ctx: commands.Context, mentioned: discord.Member = None):
+    if not mentioned:
+        message = 'Ha, you rickrolled yourself ' + ctx.author.mention
+    else:
+        message = 'Ha, get rickrolled ' + mentioned.mention
+    await ctx.send(message + ' https://bit.ly/2X8w9cx')
 
 
 @bot.event
@@ -31,7 +40,10 @@ async def on_message(message: discord.Message):
         return
 
     # delete the message
-    await message.delete()
+    try:
+        await message.delete()
+    except Exception:
+        pass  # if we can't delete the message just ignore, who cares
 
     # process other bot commands
     await bot.process_commands(message)
@@ -64,7 +76,9 @@ async def new(ctx: commands.Context, *args):
         thread_channel = await category.create_text_channel(
             thread_title, overwrites=permissions)
     except Exception:  # title is too long, invalid character, etc etc
-        # TODO tell the user their title is too long
+        await ctx.channel.send(
+            config.INVALID_TITLE.format(author=ctx.author.mention),
+            delete_after=config.MESSAGE_TIMER)
         return
 
     # create the embed message for the thread
@@ -86,6 +100,15 @@ async def new(ctx: commands.Context, *args):
         Message.create(message_id=message.id, channel_id=thread_channel.id)
 
 
+@bot.command(name='help', help='See command help')
+@menu_channel()
+async def help(ctx: commands.Context):
+    embed = Embed(color=config.HELP_COLOR,
+                  description=config.HELP_MESSAGE,
+                  title=config.HELP_TITLE)
+    await ctx.send(embed=embed)
+
+
 @bot.event
 async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
     # make sure we don't act own our own reactions
@@ -94,6 +117,9 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
 
     # remove the yes/no reaction
     react_channel: TextChannel = bot.get_channel(event.channel_id)
+    if not isinstance(react_channel, TextChannel) or \
+            react_channel.name != config.THREAD_CHANNEL:
+        return
     message = await react_channel.fetch_message(event.message_id)
     user = bot.get_user(event.user_id)
     await message.remove_reaction(event.emoji, user)
@@ -128,12 +154,24 @@ async def on_raw_reaction_add(event: discord.RawReactionActionEvent):
     await thread_channel.set_permissions(user, overwrite=permissions)
 
 
-# @bot.event
-# async def on_command_error(ctx: commands.Context,
-#                            error: commands.CommandError):
-#     print(
-#         error, file=sys.stderr
-#     )  # print out the error message to standard error (make the text red in pycharm)
+@bot.event
+async def on_command_error(ctx: commands.Context,
+                           error: commands.CommandError):
+    if isinstance(error, commands.errors.CommandNotFound):
+        # invalid command. notify whoever sent it.
+        await ctx.send(
+            config.INVALID_COMMAND.format(author=ctx.author.mention),
+            delete_after=config.MESSAGE_TIMER)
+    elif isinstance(error, discord.errors.Forbidden):
+        # don't have permissions
+        await ctx.send(
+            config.NO_PERMISSIONS.format(author=ctx.author.mention),
+            delete_after=config.MESSAGE_TIMER)
+    else:
+        print(
+            error, file=sys.stderr
+        )  # print out the error message to standard error (make the text red in pycharm)
+
 
 if __name__ == '__main__':
     database.initialize()

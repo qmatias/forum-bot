@@ -1,4 +1,4 @@
-from discord import Colour
+from discord import Colour, Embed
 from discord.ext import commands
 import random
 import config
@@ -18,11 +18,9 @@ def menu_channel():
     A decorator to check if the command is being run from within :const:`config.CHANNEL`
     """
     def predicate(ctx):
-        return ctx.channel.name == config.THREAD_CHANNEL
+        try:
+            return ctx.channel.name == config.THREAD_CHANNEL
+        except Exception:
+            return False
 
     return commands.check(predicate)
-
-
-class CustomHelpCommand(commands.DefaultHelpCommand):
-    def __init__(self):
-        super().__init__(no_category='Commands')

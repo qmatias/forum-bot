@@ -23,10 +23,25 @@ THREAD_CHANNEL_DESCRIPTION = f'Type {PREFIX}help for help with using the bot'
 THREAD_CATEGORY = 'threads'
 
 # reactions
-EMBED_DESCRIPTION = \
-'''Created by: {author}
-React with ✅ to open.
-React with ❌ to close.'''
-EMBED_TITLE = 'Thread: {title}'
 REACTION_YES = '✅'
 REACTION_NO = '❌'
+EMBED_DESCRIPTION = \
+f'''Created by: {{author}}
+React with {REACTION_YES} to open.
+React with {REACTION_NO} to close.'''
+EMBED_TITLE = 'Thread: {title}'
+
+# messages
+INVALID_TITLE = '{author}: Please enter a title under 200 characters!'
+INVALID_COMMAND = f'{{author}}: Please enter a valid command. Type {PREFIX}help for help.'
+NO_PERMISSIONS = '{author}: The bot doesn\'t have permissions to do that.'
+MESSAGE_TIMER = 15
+
+# help
+HELP_COLOR = Colour.blue()
+HELP_TITLE = 'Help page {page}'
+HELP_MESSAGE = \
+f'''
+{PREFIX}help: See this help message
+{PREFIX}new <title>: Create a new thread
+'''.strip()
